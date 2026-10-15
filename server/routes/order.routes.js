@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { createOrder, getUserOrders, getAllOrders, updateOrderStatus } from '../controllers/order.controller.js';
+import { protect } from '../middleware/auth.middleware.js';
+import { requireRole } from '../middleware/role.middleware.js';
+import { validate } from '../middleware/validate.middleware.js';
+const router = Router();
+router.use(protect);
+router.post('/', validate(z.object({ items: z.array(z.object({ productId: z.string(), quantity: z.coerce.number().int().min(1).max(100) })).min(1).max(50) })), createOrder);
+router.get('/mine', getUserOrders);
+router.get('/', requireRole(['admin']), getAllOrders);
+router.patch('/:id/status', requireRole(['admin']), validate(z.object({ status: z.enum(['processing', 'shipped', 'delivered', 'cancelled']) })), updateOrderStatus);
+export default router;

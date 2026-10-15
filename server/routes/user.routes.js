@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { getAllUsers, updateUserRole, toggleUserStatus } from '../controllers/user.controller.js';
+import { protect } from '../middleware/auth.middleware.js';
+import { requireRole } from '../middleware/role.middleware.js';
+import { validate } from '../middleware/validate.middleware.js';
+const router = Router();
+router.use(protect, requireRole(['admin']));
+router.get('/', getAllUsers);
+router.patch('/:id/role', validate(z.object({ role: z.enum(['user', 'seller', 'admin']) })), updateUserRole);
+router.patch('/:id/status', toggleUserStatus);
+export default router;

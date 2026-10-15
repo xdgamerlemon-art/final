@@ -1,0 +1,5 @@
+import { Link } from 'react-router-dom';
+import { useCart } from '../../context/CartContext.jsx';
+import { useState } from 'react';
+import ProductPhoto from './ProductPhoto.jsx';
+export default function ProductCard({ product, priority = false }) { const { addItem } = useCart(); const [notice, setNotice] = useState(''); const add = () => { try { addItem(product); setNotice('Added to bag'); setTimeout(() => setNotice(''), 1800); } catch (error) { setNotice(error.message); } }; return <article className="product-card"><Link className="product-image" to={`/products/${product._id}`}><ProductPhoto product={product} alt={product.title} loading={priority ? 'eager' : 'lazy'}/><span className="image-tag">Handmade</span></Link><div className="product-info"><span className="eyebrow">{product.category}</span><Link to={`/products/${product._id}`} className="product-title">{product.title}</Link><div className="product-card-bottom"><strong>${Number(product.price).toFixed(2)}</strong><button onClick={add} disabled={!product.stock}>{product.stock ? 'Add +' : 'Sold out'}</button></div>{notice && <small className="inline-notice">{notice}</small>}</div></article>; }

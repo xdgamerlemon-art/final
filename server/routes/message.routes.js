@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { submitMessage, getApprovedMessages, getAllMessages, approveMessage, rejectMessage } from '../controllers/message.controller.js';
+import { protect } from '../middleware/auth.middleware.js';
+import { requireRole } from '../middleware/role.middleware.js';
+import { validate } from '../middleware/validate.middleware.js';
+const router = Router();
+router.post('/', validate(z.object({ senderName: z.string().trim().min(2).max(80), senderEmail: z.string().email().max(254), message: z.string().trim().min(8).max(2000) })), submitMessage);
+router.get('/approved', getApprovedMessages);
+router.get('/', protect, requireRole(['admin']), getAllMessages);
+router.post('/:id/approve', protect, requireRole(['admin']), approveMessage);
+router.post('/:id/reject', protect, requireRole(['admin']), rejectMessage);
+export default router;

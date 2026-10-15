@@ -1,0 +1,1 @@
+export default function Table({ columns, rows, renderRow }) { return <div className="table-scroll"><table><thead><tr>{columns.map((col) => <th key={col}>{col}</th>)}</tr></thead><tbody>{rows.length ? rows.map(renderRow) : <tr><td colSpan={columns.length} className="empty-cell">Nothing to show just yet.</td></tr>}</tbody></table></div>; }
