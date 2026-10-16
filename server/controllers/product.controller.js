@@ -14,6 +14,9 @@ export const getApprovedProducts = asyncHandler(async (req, res) => {
   const category = typeof req.query.category === 'string' ? req.query.category.trim().slice(0, 60) : '';
   const minPrice = req.query.minPrice === undefined || req.query.minPrice === '' ? undefined : Number(req.query.minPrice);
   const maxPrice = req.query.maxPrice === undefined || req.query.maxPrice === '' ? undefined : Number(req.query.maxPrice);
+  const requestedPage = Number(req.query.page);
+  const page = Number.isFinite(requestedPage) ? Math.min(1000000, Math.max(1, Math.floor(requestedPage))) : 1;
+  const pageSize = Math.min(48, Math.max(1, Math.floor(Number(req.query.pageSize) || 12)));
   if ((minPrice !== undefined && (!Number.isFinite(minPrice) || minPrice < 0)) || (maxPrice !== undefined && (!Number.isFinite(maxPrice) || maxPrice < 0)) || (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice)) return res.status(400).json({ message: 'Invalid price range' });
   const filter = { status: 'approved' };
   if (search) filter.$text = { $search: search };
@@ -21,8 +24,12 @@ export const getApprovedProducts = asyncHandler(async (req, res) => {
   if (minPrice !== undefined || maxPrice !== undefined) filter.price = {};
   if (minPrice !== undefined) filter.price.$gte = minPrice;
   if (maxPrice !== undefined) filter.price.$lte = maxPrice;
-  const products = await Product.find(filter).populate('sellerId', 'name').sort({ createdAt: -1 }).limit(100);
-  res.json({ products });
+  const [products, total, categories] = await Promise.all([
+    Product.find(filter).select('title description price category stock imageUrl sellerId status createdAt').populate('sellerId', 'name').sort({ createdAt: -1, _id: -1 }).skip((page - 1) * pageSize).limit(pageSize).lean(),
+    Product.countDocuments(filter),
+    Product.distinct('category', { status: 'approved' })
+  ]);
+  res.json({ products, page, pageSize, total, pages: Math.ceil(total / pageSize), categories: categories.sort((a, b) => a.localeCompare(b)) });
 });
 export const getSellerProducts = asyncHandler(async (req, res) => {
   const filter = req.user.role === 'admin' ? {} : { sellerId: req.user.id };

@@ -15,5 +15,8 @@ const productSchema = new mongoose.Schema({
   rejectionReason: { type: String, default: '' }
 }, { timestamps: true });
 productSchema.index({ title: 'text', description: 'text', category: 'text' });
+productSchema.index({ status: 1, createdAt: -1, _id: -1 });
+productSchema.index({ status: 1, category: 1, createdAt: -1, _id: -1 });
+productSchema.index({ status: 1, price: 1, createdAt: -1, _id: -1 });
 export { productFields };
 export default mongoose.model('Product', productSchema);

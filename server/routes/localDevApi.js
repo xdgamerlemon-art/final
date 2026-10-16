@@ -103,13 +103,22 @@ export async function createLocalDevApi() {
   }));
 
   router.get('/products', (req, res) => {
-    let products = state.products.filter((item) => item.status === 'approved');
+    const approvedProducts = state.products.filter((item) => item.status === 'approved');
+    let products = approvedProducts;
     const search = typeof req.query.search === 'string' ? req.query.search.trim().toLowerCase() : '';
     if (search) products = products.filter((item) => `${item.title} ${item.description} ${item.category}`.toLowerCase().includes(search));
     if (req.query.category && req.query.category !== 'All') products = products.filter((item) => item.category === req.query.category);
-    if (req.query.minPrice !== undefined) products = products.filter((item) => item.price >= Number(req.query.minPrice));
-    if (req.query.maxPrice !== undefined) products = products.filter((item) => item.price <= Number(req.query.maxPrice));
-    res.json({ products: products.slice(0, 100).map((item) => productDocument(item, true)) });
+    const minPrice = req.query.minPrice === undefined || req.query.minPrice === '' ? undefined : Number(req.query.minPrice);
+    const maxPrice = req.query.maxPrice === undefined || req.query.maxPrice === '' ? undefined : Number(req.query.maxPrice);
+    if ((minPrice !== undefined && (!Number.isFinite(minPrice) || minPrice < 0)) || (maxPrice !== undefined && (!Number.isFinite(maxPrice) || maxPrice < 0)) || (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice)) return res.status(400).json({ message: 'Invalid price range' });
+    if (minPrice !== undefined) products = products.filter((item) => item.price >= minPrice);
+    if (maxPrice !== undefined) products = products.filter((item) => item.price <= maxPrice);
+    const requestedPage = Number(req.query.page);
+    const page = Number.isFinite(requestedPage) ? Math.min(1000000, Math.max(1, Math.floor(requestedPage))) : 1;
+    const pageSize = Math.min(48, Math.max(1, Math.floor(Number(req.query.pageSize) || 12)));
+    const start = (page - 1) * pageSize;
+    const categories = [...new Set(approvedProducts.map((item) => item.category))].sort((a, b) => a.localeCompare(b));
+    res.json({ products: products.slice(start, start + pageSize).map((item) => productDocument(item, true)), page, pageSize, total: products.length, pages: Math.ceil(products.length / pageSize), categories });
   });
   router.get('/products/mine', protect, roles('seller', 'admin'), (req, res) => res.json({ products: state.products.filter((item) => req.user.role === 'admin' || item.sellerId === req.user.id).map((item) => productDocument(item)) }));
   router.get('/products/pending', protect, roles('admin'), (req, res) => res.json({ products: state.products.filter((item) => item.status === 'pending').map((item) => productDocument(item, true)) }));
